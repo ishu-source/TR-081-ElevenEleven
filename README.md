@@ -66,7 +66,7 @@ Data Layer (Simulated / APIs)
 1. Input data (population, damage, accessibility)
 2. Calculate demand per zone
 3. Allocate supplies using optimization logic
-4. Predict risk levels
+4. Predict risk level
 5. Generate AI explanations
 6. Adapt dynamically to new conditions
 
