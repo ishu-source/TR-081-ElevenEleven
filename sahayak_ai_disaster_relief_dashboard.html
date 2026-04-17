@@ -1,0 +1,575 @@
+
+<h2 class="sr-only">Sahayak AI — Intelligent Disaster Relief Supply Chain Dashboard for India disaster response scenarios</h2>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --sah-bg:#0a0e1a;--sah-surface:#111827;--sah-card:#161d2e;--sah-border:#1e2d45;
+    --sah-red:#ef4444;--sah-amber:#f59e0b;--sah-green:#10b981;--sah-blue:#3b82f6;
+    --sah-cyan:#06b6d4;--sah-text:#e2e8f0;--sah-muted:#64748b;--sah-accent:#f97316;
+  }
+  body,#app{background:var(--sah-bg);color:var(--sah-text);font-family:'Space Grotesk',sans-serif;font-size:13px}
+  #app{min-height:100vh;display:flex;flex-direction:column}
+  .header{background:var(--sah-surface);border-bottom:1px solid var(--sah-border);padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+  .logo-dot{width:8px;height:8px;background:var(--sah-accent);border-radius:50%;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+  .header-title{font-size:15px;font-weight:600;letter-spacing:.5px;color:var(--sah-text)}
+  .header-sub{font-size:11px;color:var(--sah-muted);margin-left:auto;font-family:'IBM Plex Mono',monospace}
+  .live-badge{background:#ef444420;color:var(--sah-red);border:1px solid #ef444440;font-size:10px;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
+  .main{display:grid;grid-template-columns:260px 1fr 280px;gap:0;flex:1;height:calc(100vh - 45px);overflow:hidden}
+  .sidebar{background:var(--sah-surface);border-right:1px solid var(--sah-border);overflow-y:auto;padding:12px}
+  .map-area{position:relative;overflow:hidden;background:#0a0f1e}
+  .right-panel{background:var(--sah-surface);border-left:1px solid var(--sah-border);overflow-y:auto;padding:12px}
+  .panel-title{font-size:10px;font-weight:500;letter-spacing:1.5px;color:var(--sah-muted);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--sah-border)}
+  .incident-card{background:var(--sah-card);border:1px solid var(--sah-border);border-radius:6px;padding:10px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+  .incident-card:hover,.incident-card.active{border-color:var(--sah-accent);background:#1a1f30}
+  .incident-card.active{border-left:3px solid var(--sah-accent)}
+  .inc-severity{font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px}
+  .sev-critical{background:#ef444420;color:var(--sah-red);border:1px solid #ef444440}
+  .sev-high{background:#f59e0b20;color:var(--sah-amber);border:1px solid #f59e0b40}
+  .sev-medium{background:#10b98120;color:var(--sah-green);border:1px solid #10b98140}
+  .inc-title{font-size:12px;font-weight:500;margin:5px 0 3px;color:var(--sah-text)}
+  .inc-meta{font-size:10px;color:var(--sah-muted);display:flex;gap:8px;flex-wrap:wrap}
+  .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+  .metric-box{background:var(--sah-card);border:1px solid var(--sah-border);border-radius:6px;padding:8px}
+  .metric-val{font-size:20px;font-weight:600;font-family:'IBM Plex Mono',monospace;line-height:1}
+  .metric-lbl{font-size:9px;color:var(--sah-muted);margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
+  .metric-val.red{color:var(--sah-red)}
+  .metric-val.amber{color:var(--sah-amber)}
+  .metric-val.green{color:var(--sah-green)}
+  .metric-val.blue{color:var(--sah-blue)}
+  .zone-row{background:var(--sah-card);border:1px solid var(--sah-border);border-radius:5px;padding:8px;margin-bottom:6px}
+  .zone-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .zone-name{font-size:12px;font-weight:500}
+  .risk-pill{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500}
+  .risk-high{background:#ef444420;color:var(--sah-red);border:1px solid #ef444440}
+  .risk-medium{background:#f59e0b20;color:var(--sah-amber);border:1px solid #f59e0b40}
+  .risk-safe{background:#10b98120;color:var(--sah-green);border:1px solid #10b98140}
+  .supply-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .supply-lbl{font-size:9px;color:var(--sah-muted);width:48px;flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+  .supply-bar-bg{flex:1;background:#1e2d45;border-radius:2px;height:5px;overflow:hidden}
+  .supply-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+  .supply-pct{font-size:9px;color:var(--sah-muted);width:28px;text-align:right;font-family:'IBM Plex Mono',monospace}
+  .alert-item{display:flex;gap:8px;align-items:flex-start;padding:7px;background:var(--sah-card);border:1px solid var(--sah-border);border-radius:5px;margin-bottom:5px}
+  .alert-icon{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:8px}
+  .alert-red{background:#ef444430;color:var(--sah-red)}
+  .alert-amber{background:#f59e0b30;color:var(--sah-amber)}
+  .alert-text{font-size:10px;color:var(--sah-text);line-height:1.4}
+  .route-item{padding:6px 8px;background:var(--sah-card);border:1px solid var(--sah-border);border-radius:5px;margin-bottom:4px}
+  .route-zone{font-size:10px;font-weight:500;color:var(--sah-cyan);font-family:'IBM Plex Mono',monospace}
+  .route-text{font-size:10px;color:var(--sah-muted);margin-top:2px;line-height:1.4}
+  .sim-row{margin-bottom:10px}
+  .sim-lbl{font-size:10px;color:var(--sah-text);margin-bottom:4px;display:flex;justify-content:space-between}
+  .sim-val{font-size:10px;color:var(--sah-accent);font-family:'IBM Plex Mono',monospace}
+  input[type=range]{width:100%;accent-color:var(--sah-accent)}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+  .toggle{position:relative;display:inline-block;width:34px;height:18px}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#1e2d45;border-radius:18px;transition:.3s}
+  .toggle-slider:before{content:'';position:absolute;width:12px;height:12px;left:3px;bottom:3px;background:#64748b;border-radius:50%;transition:.3s}
+  input:checked+.toggle-slider{background:var(--sah-accent)}
+  input:checked+.toggle-slider:before{transform:translateX(16px);background:#fff}
+  .run-btn{width:100%;padding:8px;background:var(--sah-accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;margin-top:8px;font-family:'Space Grotesk',sans-serif;transition:opacity .2s}
+  .run-btn:hover{opacity:.85}
+  .ai-box{background:linear-gradient(135deg,#0f1f3d,#1a1f30);border:1px solid #1e3a5f;border-radius:6px;padding:10px;margin-bottom:12px}
+  .ai-label{font-size:9px;color:var(--sah-blue);letter-spacing:1px;text-transform:uppercase;font-weight:500;margin-bottom:6px}
+  .ai-text{font-size:10px;color:#94a3b8;line-height:1.6}
+  .map-svg{width:100%;height:100%}
+  .map-overlay{position:absolute;top:10px;left:10px;background:#0a0e1aee;border:1px solid var(--sah-border);border-radius:6px;padding:8px 10px}
+  .legend-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;color:var(--sah-muted)}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .map-info{position:absolute;bottom:10px;right:10px;background:#0a0e1aee;border:1px solid var(--sah-border);border-radius:6px;padding:8px;font-size:10px;color:var(--sah-muted);min-width:160px}
+  .zone-tooltip{position:absolute;background:#0d1526ee;border:1px solid var(--sah-border);border-radius:6px;padding:8px 10px;font-size:10px;pointer-events:none;display:none;z-index:200;min-width:160px}
+  .tab-row{display:flex;gap:2px;margin-bottom:10px}
+  .tab{padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer;color:var(--sah-muted);transition:all .2s}
+  .tab.active{background:var(--sah-accent);color:#fff}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .section-gap{margin-bottom:14px}
+  .bottleneck-bar{background:var(--sah-card);border:1px solid var(--sah-border);border-radius:5px;padding:8px;margin-bottom:6px}
+  .bn-header{display:flex;justify-content:space-between;margin-bottom:5px}
+  .bn-type{font-size:10px;font-weight:500;color:var(--sah-text)}
+  .bn-pct{font-size:10px;color:var(--sah-amber);font-family:'IBM Plex Mono',monospace}
+  .bn-bar-bg{background:#1e2d45;border-radius:2px;height:4px;overflow:hidden}
+  .bn-bar-fill{height:100%;border-radius:2px;background:var(--sah-amber)}
+  .scrollbar-thin{scrollbar-width:thin;scrollbar-color:#1e2d45 transparent}
+  .coverage-ring{display:flex;align-items:center;justify-content:center;margin:6px 0}
+</style>
+
+<div id="app">
+  <div class="header">
+    <div class="logo-dot"></div>
+    <div class="header-title">SAHAYAK AI — Disaster Relief Operations Center</div>
+    <div class="live-badge">● LIVE</div>
+    <div class="header-sub" id="live-clock">Loading...</div>
+  </div>
+  <div class="main">
+    <div class="sidebar scrollbar-thin">
+      <div class="panel-title">Incident Scenarios</div>
+      <div id="incident-list"></div>
+      <div class="panel-title" style="margin-top:14px">Simulation Controls</div>
+      <div class="sim-row">
+        <div class="sim-lbl">Supply Multiplier <span class="sim-val" id="sup-val">1.0×</span></div>
+        <input type="range" min="0.2" max="2" step="0.1" value="1" id="sup-slider">
+      </div>
+      <div class="sim-row">
+        <div class="sim-lbl">Population Surge <span class="sim-val" id="pop-val">1.0×</span></div>
+        <input type="range" min="0.5" max="3" step="0.1" value="1" id="pop-slider">
+      </div>
+      <div class="sim-row">
+        <div class="sim-lbl">Damage Delta <span class="sim-val" id="dmg-val">+0.0</span></div>
+        <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="dmg-slider">
+      </div>
+      <div class="toggle-row">
+        <span style="font-size:10px;color:var(--sah-text)">Block All Roads</span>
+        <label class="toggle"><input type="checkbox" id="road-toggle"><span class="toggle-slider"></span></label>
+      </div>
+      <button class="run-btn" onclick="runSimulation()">Run Simulation ↗</button>
+    </div>
+
+    <div class="map-area">
+      <svg id="map-svg" class="map-svg" viewBox="0 0 900 700"></svg>
+      <div class="map-overlay">
+        <div style="font-size:9px;color:var(--sah-muted);margin-bottom:5px;letter-spacing:1px;text-transform:uppercase">Risk Level</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--sah-red)"></div> High Risk</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--sah-amber)"></div> Medium Risk</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--sah-green)"></div> Safe Zone</div>
+        <div class="legend-row" style="margin-top:4px"><div class="legend-dot" style="background:var(--sah-blue);border-radius:2px"></div> Supply Depot</div>
+        <div style="margin-top:6px;font-size:9px;color:var(--sah-muted)">Bubble size = population</div>
+      </div>
+      <div class="map-info" id="map-info">
+        <div style="color:var(--sah-text);font-size:11px;font-weight:500;margin-bottom:4px">India — Active Incident</div>
+        <div id="map-info-content" style="color:var(--sah-muted)">Select a zone on the map</div>
+      </div>
+      <div class="zone-tooltip" id="tooltip"></div>
+    </div>
+
+    <div class="right-panel scrollbar-thin">
+      <div class="tab-row">
+        <div class="tab active" onclick="switchTab(this,'t-overview')">Overview</div>
+        <div class="tab" onclick="switchTab(this,'t-zones')">Zones</div>
+        <div class="tab" onclick="switchTab(this,'t-routes')">Routes</div>
+        <div class="tab" onclick="switchTab(this,'t-alerts')">Alerts</div>
+      </div>
+
+      <div id="t-overview" class="tab-content active">
+        <div class="ai-box section-gap">
+          <div class="ai-label">AI Analysis</div>
+          <div class="ai-text" id="ai-text">Select an incident to generate AI allocation analysis...</div>
+        </div>
+        <div class="panel-title">Operational Metrics</div>
+        <div class="metric-grid" id="metrics-grid">
+          <div class="metric-box"><div class="metric-val blue">—</div><div class="metric-lbl">Total Zones</div></div>
+          <div class="metric-box"><div class="metric-val red">—</div><div class="metric-lbl">High Risk</div></div>
+          <div class="metric-box"><div class="metric-val green">—</div><div class="metric-lbl">Coverage %</div></div>
+          <div class="metric-box"><div class="metric-val amber">—</div><div class="metric-lbl">Affected</div></div>
+        </div>
+        <div class="panel-title">Supply Chain Bottlenecks</div>
+        <div id="bottlenecks"></div>
+        <div class="panel-title" style="margin-top:10px">Resource Allocation</div>
+        <div style="position:relative;height:180px;margin-bottom:6px">
+          <canvas id="alloc-chart" role="img" aria-label="Bar chart showing food, water, and medicine allocation per zone">Allocation data loading...</canvas>
+        </div>
+      </div>
+
+      <div id="t-zones" class="tab-content">
+        <div class="panel-title">Zone-wise Allocation</div>
+        <div id="zones-list"></div>
+      </div>
+
+      <div id="t-routes" class="tab-content">
+        <div class="panel-title">Route Recommendations</div>
+        <div id="routes-list"></div>
+      </div>
+
+      <div id="t-alerts" class="tab-content">
+        <div class="panel-title">Shortage Alerts</div>
+        <div id="alerts-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const INCIDENTS = {
+  chennai_flood: {
+    title: "Chennai Floods 2024",
+    state: "Tamil Nadu",
+    severity: "critical",
+    type: "Flash Flood",
+    date: "Nov 2024",
+    affectedPeople: 847000,
+    description: "Cyclone Michaung triggers flash floods across Chennai metropolitan area. Tambaram, Velachery, and Adyar severely inundated.",
+    depot: { lat: 13.08, lon: 80.27, name: "Chennai Central Depot" },
+    zones: [
+      { id: "Tambaram", lat: 12.924, lon: 80.127, population: 182000, damage: 0.85, access: "partial", risk: "high", food: 68, water: 55, medicine: 72, area_km2: 45 },
+      { id: "Velachery", lat: 12.978, lon: 80.220, population: 145000, damage: 0.78, access: "partial", risk: "high", food: 60, water: 45, medicine: 65, area_km2: 30 },
+      { id: "Adyar", lat: 13.000, lon: 80.257, population: 128000, damage: 0.72, access: "open", risk: "high", food: 75, water: 62, medicine: 70, area_km2: 22 },
+      { id: "Perambur", lat: 13.117, lon: 80.248, population: 95000, damage: 0.45, access: "open", risk: "medium", food: 82, water: 78, medicine: 80, area_km2: 18 },
+      { id: "Sholinganallur", lat: 12.900, lon: 80.228, population: 74000, damage: 0.35, access: "open", risk: "medium", food: 88, water: 85, medicine: 86, area_km2: 35 },
+      { id: "Avadi", lat: 13.115, lon: 80.103, population: 62000, damage: 0.15, access: "open", risk: "safe", food: 95, water: 93, medicine: 94, area_km2: 52 },
+      { id: "Chromepet", lat: 12.951, lon: 80.143, population: 89000, damage: 0.60, access: "blocked", risk: "high", food: 25, water: 18, medicine: 30, area_km2: 15 },
+      { id: "Anna Nagar", lat: 13.085, lon: 80.211, population: 110000, damage: 0.40, access: "open", risk: "medium", food: 80, water: 76, medicine: 78, area_km2: 28 },
+    ],
+    supplyInventory: { food: 450000, water: 380000, medicine: 120000 },
+    routes: [
+      { zone: "Tambaram", rec: "Use NH48 via Chrompet bypass. Avoid Pallavaram flyover (submerged). Deploy amphibious trucks.", mode: "road+boat" },
+      { zone: "Velachery", rec: "Inner Ring Road from Guindy. Avoid Velachery Lake area (flood depth 1.8m). Helicopter drops for critical medicine.", mode: "aerial" },
+      { zone: "Adyar", rec: "ECR highway from South. Adyar bridge passable at low tide only. Coordinate with NDRF boats.", mode: "boat" },
+      { zone: "Chromepet", rec: "Route BLOCKED. Air-drop only. Deploy IAF Mi-17 for emergency medicine. Priority: insulin & dialysis supplies.", mode: "aerial" },
+    ]
+  },
+  odisha_cyclone: {
+    title: "Odisha Cyclone Remal",
+    state: "Odisha",
+    severity: "high",
+    type: "Cyclone",
+    date: "May 2024",
+    affectedPeople: 421000,
+    description: "Cyclone Remal makes landfall near Puri district. Coastal districts of Jagatsinghpur, Kendrapara, Balasore heavily affected.",
+    depot: { lat: 20.48, lon: 85.88, name: "Bhubaneswar Supply Hub" },
+    zones: [
+      { id: "Puri", lat: 19.812, lon: 85.832, population: 95000, damage: 0.90, access: "partial", risk: "high", food: 55, water: 40, medicine: 60, area_km2: 70 },
+      { id: "Jagatsinghpur", lat: 20.256, lon: 86.177, population: 78000, damage: 0.82, access: "blocked", risk: "high", food: 20, water: 15, medicine: 22, area_km2: 55 },
+      { id: "Kendrapara", lat: 20.501, lon: 86.422, population: 65000, damage: 0.70, access: "partial", risk: "high", food: 58, water: 48, medicine: 62, area_km2: 80 },
+      { id: "Balasore", lat: 21.494, lon: 86.938, population: 88000, damage: 0.55, access: "open", risk: "medium", food: 72, water: 68, medicine: 74, area_km2: 65 },
+      { id: "Bhadrak", lat: 21.064, lon: 86.506, population: 52000, damage: 0.30, access: "open", risk: "medium", food: 85, water: 82, medicine: 86, area_km2: 45 },
+      { id: "Cuttack", lat: 20.463, lon: 85.879, population: 115000, damage: 0.20, access: "open", risk: "safe", food: 91, water: 90, medicine: 92, area_km2: 100 },
+    ],
+    supplyInventory: { food: 260000, water: 220000, medicine: 85000 },
+    routes: [
+      { zone: "Puri", rec: "NH316 from Bhubaneswar. Coastal road damaged. Deploy ODRAF boats via Chilika Lake entry point.", mode: "road+boat" },
+      { zone: "Jagatsinghpur", rec: "Route BLOCKED by storm surge. Helicopter airlifts mandatory. Mahanadi delta flooding prevents land access.", mode: "aerial" },
+      { zone: "Kendrapara", rec: "SH10 partially open. River crossings need pontoon bridges. NDRF deployed for logistics.", mode: "boat" },
+    ]
+  }
+};
+
+let currentIncident = null;
+let allocChart = null;
+let mapSvg = null;
+
+function switchTab(el, tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }).replace(',', ' IST |');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function renderIncidentList() {
+  const el = document.getElementById('incident-list');
+  el.innerHTML = Object.entries(INCIDENTS).map(([id, inc]) => `
+    <div class="incident-card" id="inc-${id}" onclick="selectIncident('${id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span class="inc-severity sev-${inc.severity}">${inc.severity}</span>
+        <span style="font-size:9px;color:var(--sah-muted);font-family:'IBM Plex Mono',monospace">${inc.date}</span>
+      </div>
+      <div class="inc-title">${inc.title}</div>
+      <div class="inc-meta">
+        <span>${inc.type}</span>
+        <span>${inc.state}</span>
+        <span>${(inc.affectedPeople/1000).toFixed(0)}K affected</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectIncident(id) {
+  currentIncident = id;
+  document.querySelectorAll('.incident-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('inc-' + id).classList.add('active');
+  renderDashboard(INCIDENTS[id]);
+}
+
+function runSimulation() {
+  if (!currentIncident) { selectIncident('chennai_flood'); return; }
+  const inc = JSON.parse(JSON.stringify(INCIDENTS[currentIncident]));
+  const supMul = parseFloat(document.getElementById('sup-slider').value);
+  const popMul = parseFloat(document.getElementById('pop-slider').value);
+  const dmgDelta = parseFloat(document.getElementById('dmg-slider').value);
+  const blockRoads = document.getElementById('road-toggle').checked;
+
+  inc.zones = inc.zones.map(z => ({
+    ...z,
+    population: Math.round(z.population * popMul),
+    damage: Math.min(1, Math.max(0, z.damage + dmgDelta)),
+    access: blockRoads ? 'blocked' : z.access,
+    food: Math.min(100, Math.round(z.food * supMul)),
+    water: Math.min(100, Math.round(z.water * supMul)),
+    medicine: Math.min(100, Math.round(z.medicine * supMul)),
+    risk: (z.damage + dmgDelta) > 0.65 ? 'high' : (z.damage + dmgDelta) > 0.35 ? 'medium' : 'safe'
+  }));
+  inc.title += ' [SIM]';
+  renderDashboard(inc);
+}
+
+function renderDashboard(inc) {
+  renderMap(inc);
+  renderMetrics(inc);
+  renderZones(inc);
+  renderRoutes(inc);
+  renderAlerts(inc);
+  renderBottlenecks(inc);
+  renderAllocChart(inc);
+  renderAI(inc);
+  document.getElementById('map-info-content').innerHTML = `
+    <div style="margin-bottom:3px"><span style="color:var(--sah-text)">${inc.title}</span></div>
+    <div>${inc.state} · ${inc.type}</div>
+    <div>${(inc.affectedPeople/1000).toFixed(0)}K people affected</div>
+    <div style="margin-top:4px;color:var(--sah-cyan)">Depot: ${inc.depot.name}</div>
+  `;
+}
+
+function getColor(risk) {
+  return risk === 'high' ? '#ef4444' : risk === 'medium' ? '#f59e0b' : '#10b981';
+}
+
+function renderMap(inc) {
+  const svg = document.getElementById('map-svg');
+  svg.innerHTML = '';
+  const W = 900, H = 700;
+
+  const lats = inc.zones.map(z => z.lat).concat(inc.depot.lat);
+  const lons = inc.zones.map(z => z.lon).concat(inc.depot.lon);
+  const minLat = Math.min(...lats) - 0.15, maxLat = Math.max(...lats) + 0.15;
+  const minLon = Math.min(...lons) - 0.15, maxLon = Math.max(...lons) + 0.15;
+
+  function toX(lon) { return ((lon - minLon) / (maxLon - minLon)) * (W - 120) + 60; }
+  function toY(lat) { return ((maxLat - lat) / (maxLat - minLat)) * (H - 120) + 60; }
+
+  const maxPop = Math.max(...inc.zones.map(z => z.population));
+
+  const ns = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text) {
+    const e = document.createElementNS(ns, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  const defs = el('defs', {});
+  const gridPat = el('pattern', { id: 'grid', width: '40', height: '40', patternUnits: 'userSpaceOnUse' });
+  const gridPath = el('path', { d: 'M 40 0 L 0 0 0 40', fill: 'none', stroke: '#1e2d45', 'stroke-width': '0.5', opacity: '0.5' });
+  gridPat.appendChild(gridPath);
+  defs.appendChild(gridPat);
+  svg.appendChild(defs);
+
+  svg.appendChild(el('rect', { width: W, height: H, fill: 'url(#grid)' }));
+
+  const titleEl = el('text', { x: '20', y: '22', fill: '#64748b', 'font-size': '10', 'font-family': "'IBM Plex Mono', monospace", 'letter-spacing': '1' }, `SATELLITE OVERLAY — ${inc.state.toUpperCase()}, INDIA`);
+  svg.appendChild(titleEl);
+
+  inc.zones.forEach(z => {
+    const x1 = toX(inc.depot.lon), y1 = toY(inc.depot.lat);
+    const x2 = toX(z.lon), y2 = toY(z.lat);
+    const routeZ = inc.routes && inc.routes.find(r => r.zone === z.id);
+    const isBlocked = z.access === 'blocked';
+    const line = el('line', {
+      x1, y1, x2, y2,
+      stroke: isBlocked ? '#ef444430' : z.risk === 'high' ? '#f59e0b40' : '#3b82f630',
+      'stroke-width': isBlocked ? '1' : '1.5',
+      'stroke-dasharray': isBlocked ? '4,4' : routeZ && routeZ.mode === 'aerial' ? '6,3' : '0'
+    });
+    svg.appendChild(line);
+  });
+
+  const depX = toX(inc.depot.lon), depY = toY(inc.depot.lat);
+  const depG = el('g', {});
+  depG.appendChild(el('rect', { x: depX - 10, y: depY - 10, width: 20, height: 20, rx: '3', fill: '#3b82f620', stroke: '#3b82f6', 'stroke-width': '1.5' }));
+  depG.appendChild(el('rect', { x: depX - 5, y: depY - 5, width: 10, height: 10, rx: '2', fill: '#3b82f6' }));
+  depG.appendChild(el('text', { x: depX, y: depY + 24, 'text-anchor': 'middle', fill: '#3b82f6', 'font-size': '9', 'font-family': "'IBM Plex Mono', monospace" }, inc.depot.name.split(' ')[0]));
+  svg.appendChild(depG);
+
+  inc.zones.forEach(z => {
+    const x = toX(z.lon), y = toY(z.lat);
+    const r = Math.sqrt(z.population / maxPop) * 30 + 8;
+    const col = getColor(z.risk);
+    const zG = el('g', { style: 'cursor:pointer' });
+
+    const isBlocked = z.access === 'blocked';
+    zG.appendChild(el('circle', { cx: x, cy: y, r: r + 8, fill: col + '15', stroke: col + '30', 'stroke-width': '1' }));
+    zG.appendChild(el('circle', {
+      cx: x, cy: y, r,
+      fill: col + (isBlocked ? '20' : '30'),
+      stroke: col,
+      'stroke-width': isBlocked ? '2' : '1.5',
+      'stroke-dasharray': isBlocked ? '3,2' : '0'
+    }));
+
+    if (isBlocked) {
+      zG.appendChild(el('text', { x, y: y + 1, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: col, 'font-size': '10', 'font-weight': '500' }, '✕'));
+    } else {
+      const shortage = z.food < 50 || z.water < 50 || z.medicine < 50;
+      if (shortage) {
+        zG.appendChild(el('circle', { cx: x + r - 4, cy: y - r + 4, r: '5', fill: '#ef4444', stroke: '#0a0e1a', 'stroke-width': '1' }));
+        zG.appendChild(el('text', { x: x + r - 4, y: y - r + 5, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: '#fff', 'font-size': '7', 'font-weight': '500' }, '!'));
+      }
+    }
+
+    zG.appendChild(el('text', { x, y: y + r + 11, 'text-anchor': 'middle', fill: '#e2e8f0', 'font-size': '9', 'font-family': "'IBM Plex Mono', monospace" }, z.id));
+
+    const tooltip = document.getElementById('tooltip');
+    zG.addEventListener('mouseenter', (e) => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `
+        <div style="color:${col};font-weight:500;margin-bottom:4px">${z.id}</div>
+        <div style="color:#94a3b8">Population: <span style="color:#e2e8f0">${z.population.toLocaleString()}</span></div>
+        <div style="color:#94a3b8">Damage: <span style="color:#e2e8f0">${(z.damage * 100).toFixed(0)}%</span></div>
+        <div style="color:#94a3b8">Access: <span style="color:${z.access === 'blocked' ? '#ef4444' : z.access === 'partial' ? '#f59e0b' : '#10b981'}">${z.access}</span></div>
+        <div style="color:#94a3b8;margin-top:4px">Food: <span style="color:#10b981">${z.food}%</span> · Water: <span style="color:#06b6d4">${z.water}%</span> · Med: <span style="color:#f97316">${z.medicine}%</span></div>
+        <div style="color:#94a3b8">Risk: <span style="color:${col}">${z.risk.toUpperCase()}</span></div>
+      `;
+    });
+    zG.addEventListener('mousemove', (e) => {
+      const rect = document.getElementById('map-svg').getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 20) + 'px';
+    });
+    zG.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+    svg.appendChild(zG);
+  });
+
+  const coordLabel = el('text', { x: W - 10, y: H - 8, 'text-anchor': 'end', fill: '#64748b', 'font-size': '9', 'font-family': "'IBM Plex Mono', monospace" }, `${inc.zones[0].lat.toFixed(2)}°N ${inc.zones[0].lon.toFixed(2)}°E`);
+  svg.appendChild(coordLabel);
+}
+
+function renderMetrics(inc) {
+  const highRisk = inc.zones.filter(z => z.risk === 'high').length;
+  const coverage = Math.round(inc.zones.reduce((a, z) => a + (z.food + z.water + z.medicine) / 3, 0) / inc.zones.length);
+  const el = document.getElementById('metrics-grid');
+  el.innerHTML = `
+    <div class="metric-box"><div class="metric-val blue">${inc.zones.length}</div><div class="metric-lbl">Total Zones</div></div>
+    <div class="metric-box"><div class="metric-val red">${highRisk}</div><div class="metric-lbl">High Risk</div></div>
+    <div class="metric-box"><div class="metric-val ${coverage >= 75 ? 'green' : coverage >= 50 ? 'amber' : 'red'}">${coverage}%</div><div class="metric-lbl">Coverage</div></div>
+    <div class="metric-box"><div class="metric-val amber">${(inc.affectedPeople / 1000).toFixed(0)}K</div><div class="metric-lbl">Affected</div></div>
+  `;
+}
+
+function renderZones(inc) {
+  const el = document.getElementById('zones-list');
+  el.innerHTML = [...inc.zones].sort((a, b) => b.damage - a.damage).map(z => `
+    <div class="zone-row">
+      <div class="zone-header">
+        <div class="zone-name">${z.id}</div>
+        <span class="risk-pill risk-${z.risk}">${z.risk}</span>
+      </div>
+      <div style="font-size:9px;color:var(--sah-muted);margin-bottom:5px">${z.population.toLocaleString()} people · Damage ${(z.damage*100).toFixed(0)}% · Access: <span style="color:${z.access==='blocked'?'var(--sah-red)':z.access==='partial'?'var(--sah-amber)':'var(--sah-green)'}">${z.access}</span></div>
+      ${['food','water','medicine'].map(r => `
+        <div class="supply-bar-row">
+          <div class="supply-lbl">${r.substring(0,3).toUpperCase()}</div>
+          <div class="supply-bar-bg"><div class="supply-bar-fill" style="width:${z[r]}%;background:${r==='food'?'#10b981':r==='water'?'#06b6d4':'#f97316'}"></div></div>
+          <div class="supply-pct">${z[r]}%</div>
+        </div>`).join('')}
+    </div>
+  `).join('');
+}
+
+function renderRoutes(inc) {
+  const el = document.getElementById('routes-list');
+  if (!inc.routes || !inc.routes.length) { el.innerHTML = '<div style="font-size:10px;color:var(--sah-muted)">No route data for this incident.</div>'; return; }
+  el.innerHTML = inc.routes.map(r => `
+    <div class="route-item">
+      <div class="route-zone">${r.zone} <span style="color:var(--sah-muted);font-size:9px">[${r.mode}]</span></div>
+      <div class="route-text">${r.rec}</div>
+    </div>
+  `).join('');
+}
+
+function renderAlerts(inc) {
+  const el = document.getElementById('alerts-list');
+  const alerts = [];
+  inc.zones.forEach(z => {
+    if (z.food < 50) alerts.push({ text: `Food shortage: ${z.id} (${z.food}% supply coverage)`, sev: 'red' });
+    if (z.water < 50) alerts.push({ text: `Water shortage: ${z.id} (${z.water}% supply coverage)`, sev: z.water < 30 ? 'red' : 'amber' });
+    if (z.medicine < 50) alerts.push({ text: `Medicine shortage: ${z.id} (${z.medicine}% supply coverage)`, sev: 'red' });
+    if (z.access === 'blocked') alerts.push({ text: `Access BLOCKED: ${z.id} — aerial or boat deployment required`, sev: 'red' });
+  });
+  if (!alerts.length) {
+    el.innerHTML = '<div class="alert-item"><div class="alert-text" style="color:var(--sah-green)">No critical shortages detected.</div></div>';
+    return;
+  }
+  el.innerHTML = alerts.map(a => `
+    <div class="alert-item">
+      <div class="alert-icon alert-${a.sev}">!</div>
+      <div class="alert-text">${a.text}</div>
+    </div>
+  `).join('');
+}
+
+function renderBottlenecks(inc) {
+  const el = document.getElementById('bottlenecks');
+  const blocked = inc.zones.filter(z => z.access === 'blocked').length;
+  const foodAvg = Math.round(inc.zones.reduce((a, z) => a + z.food, 0) / inc.zones.length);
+  const waterAvg = Math.round(inc.zones.reduce((a, z) => a + z.water, 0) / inc.zones.length);
+  const medAvg = Math.round(inc.zones.reduce((a, z) => a + z.medicine, 0) / inc.zones.length);
+  const bottlenecks = [
+    { label: 'Road Access Blocked', pct: Math.round(blocked / inc.zones.length * 100) },
+    { label: 'Food Distribution Gap', pct: 100 - foodAvg },
+    { label: 'Water Supply Gap', pct: 100 - waterAvg },
+    { label: 'Medicine Supply Gap', pct: 100 - medAvg },
+  ];
+  el.innerHTML = bottlenecks.map(b => `
+    <div class="bottleneck-bar">
+      <div class="bn-header"><span class="bn-type">${b.label}</span><span class="bn-pct">${b.pct}%</span></div>
+      <div class="bn-bar-bg"><div class="bn-bar-fill" style="width:${b.pct}%"></div></div>
+    </div>
+  `).join('');
+}
+
+function renderAllocChart(inc) {
+  const canvas = document.getElementById('alloc-chart');
+  if (allocChart) { allocChart.destroy(); allocChart = null; }
+  const top6 = [...inc.zones].sort((a, b) => b.damage - a.damage).slice(0, 6);
+  allocChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: top6.map(z => z.id),
+      datasets: [
+        { label: 'Food', data: top6.map(z => z.food), backgroundColor: '#10b98170', borderColor: '#10b981', borderWidth: 1 },
+        { label: 'Water', data: top6.map(z => z.water), backgroundColor: '#06b6d470', borderColor: '#06b6d4', borderWidth: 1 },
+        { label: 'Medicine', data: top6.map(z => z.medicine), backgroundColor: '#f9731670', borderColor: '#f97316', borderWidth: 1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw}%` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 8 } }, grid: { color: '#1e2d4560' } },
+        y: { min: 0, max: 100, ticks: { color: '#64748b', font: { size: 8 } }, grid: { color: '#1e2d4560' } }
+      }
+    }
+  });
+}
+
+function renderAI(inc) {
+  const highRisk = inc.zones.filter(z => z.risk === 'high');
+  const blocked = inc.zones.filter(z => z.access === 'blocked');
+  const foodShortage = inc.zones.filter(z => z.food < 50);
+  const coverage = Math.round(inc.zones.reduce((a, z) => a + (z.food + z.water + z.medicine) / 3, 0) / inc.zones.length);
+  document.getElementById('ai-text').textContent =
+    `${inc.title}: ${highRisk.length} of ${inc.zones.length} zones classified HIGH RISK with avg supply coverage at ${coverage}%. ` +
+    (blocked.length ? `${blocked.length} zone(s) INACCESSIBLE by road — aerial/boat deployment critical: ${blocked.map(z => z.id).join(', ')}. ` : '') +
+    (foodShortage.length ? `Food shortages detected in ${foodShortage.length} zone(s). Prioritize ${highRisk.slice(0, 2).map(z => z.id).join(' and ')} for immediate relief convoy. ` : '') +
+    `Deploy supply from ${inc.depot.name}. Estimated 48hr coverage gap: ${100 - coverage}%.`;
+}
+
+document.getElementById('sup-slider').oninput = function() { document.getElementById('sup-val').textContent = parseFloat(this.value).toFixed(1) + '×'; };
+document.getElementById('pop-slider').oninput = function() { document.getElementById('pop-val').textContent = parseFloat(this.value).toFixed(1) + '×'; };
+document.getElementById('dmg-slider').oninput = function() {
+  const v = parseFloat(this.value);
+  document.getElementById('dmg-val').textContent = (v >= 0 ? '+' : '') + v.toFixed(2);
+};
+
+renderIncidentList();
+selectIncident('chennai_flood');
+</script>
